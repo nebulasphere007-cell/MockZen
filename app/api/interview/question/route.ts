@@ -146,84 +146,580 @@ export async function POST(request: Request) {
           let courseContext = ""
 
           if (isDSAInterview) {
-            const dsaTopics: Record<string, string> = {
-              arrays:
-                "Arrays and Strings - two pointers, sliding window, prefix sums, array manipulation, string algorithms",
-              linked: "Linked Lists - reversal, cycle detection, merging, fast-slow pointers, dummy nodes",
-              trees:
-                "Trees and Graphs - traversals (DFS, BFS), binary search trees, graph algorithms, topological sort",
-              sorting: "Sorting and Searching - quicksort, mergesort, binary search, two pointers, divide and conquer",
-              dynamic:
-                "Dynamic Programming - memoization, tabulation, classic DP patterns (knapsack, LCS, LIS), optimization",
-              advanced:
-                "Advanced Algorithms - backtracking, greedy algorithms, bit manipulation, math problems, complex optimizations",
+            // DSA Topics - EXACTLY matching lib/courses.ts info descriptions
+            const dsaTopics: Record<string, { description: string; examples: string[] }> = {
+              arrays: {
+                description: "Arrays & Strings - array manipulation, string algorithms, and two-pointer techniques",
+                examples: [
+                  "Two-pointer problems (finding pairs, removing duplicates)",
+                  "Sliding window (max sum subarray, longest substring)",
+                  "Prefix sums and cumulative arrays",
+                  "String manipulation (reversal, rotation, matching)",
+                  "In-place array modifications",
+                  "Kadane's algorithm variations"
+                ]
+              },
+              linked: {
+                description: "Linked Lists - traversal, reversal, and cycle detection",
+                examples: [
+                  "Reverse a linked list (iterative/recursive)",
+                  "Detect cycle using Floyd's algorithm",
+                  "Find middle element using fast-slow pointers",
+                  "Merge two sorted linked lists",
+                  "Remove nth node from end",
+                  "Intersection of two linked lists"
+                ]
+              },
+              linkedlists: {
+                description: "Linked Lists - traversal, reversal, and cycle detection",
+                examples: [
+                  "Reverse a linked list (iterative/recursive)",
+                  "Detect cycle using Floyd's algorithm",
+                  "Find middle element using fast-slow pointers",
+                  "Merge two sorted linked lists",
+                  "Remove nth node from end",
+                  "Intersection of two linked lists"
+                ]
+              },
+              trees: {
+                description: "Trees & Graphs - tree traversals, BST operations, and graph algorithms",
+                examples: [
+                  "Tree traversals (inorder, preorder, postorder, level-order)",
+                  "BST operations (insert, delete, search, validate)",
+                  "Graph BFS and DFS traversals",
+                  "Lowest common ancestor",
+                  "Path sum problems",
+                  "Topological sort",
+                  "Detect cycle in graph"
+                ]
+              },
+              sorting: {
+                description: "Sorting & Searching - quicksort, mergesort, binary search, and variations",
+                examples: [
+                  "Implement quicksort or mergesort",
+                  "Binary search variations (first/last occurrence)",
+                  "Search in rotated sorted array",
+                  "Kth largest/smallest element",
+                  "Merge intervals",
+                  "Sort colors (Dutch National Flag)"
+                ]
+              },
+              dynamic: {
+                description: "Dynamic Programming - optimization problems with memoization and tabulation",
+                examples: [
+                  "Fibonacci with memoization/tabulation",
+                  "Knapsack problem (0/1, unbounded)",
+                  "Longest Common Subsequence (LCS)",
+                  "Longest Increasing Subsequence (LIS)",
+                  "Coin change problem",
+                  "Edit distance",
+                  "Maximum subarray (Kadane's)"
+                ]
+              },
+              advanced: {
+                description: "Advanced Algorithms - greedy algorithms, backtracking, and complex patterns",
+                examples: [
+                  "Backtracking (N-Queens, Sudoku solver, permutations)",
+                  "Greedy algorithms (activity selection, Huffman coding)",
+                  "Bit manipulation (single number, counting bits)",
+                  "Trie operations",
+                  "Union-Find/Disjoint Set",
+                  "Segment trees basics"
+                ]
+              }
             }
 
-            const topicDescription = dsaTopics[courseSubject] || "Data Structures and Algorithms"
+            const topicData = dsaTopics[courseSubject] || { description: "Data Structures and Algorithms", examples: [] }
+            const topicDescription = topicData.description
+            const topicExamples = topicData.examples
 
-            courseContext = `\n\n🎯 DSA CODING PROBLEM - ${courseSubject.toUpperCase()}\n\nYOU ARE GENERATING A CODING PROBLEM, NOT AN INTERVIEW QUESTION.\n\nPROBLEM REQUIREMENTS:\n1. Present a clear, specific coding problem related to: ${topicDescription}\n2. Include input/output examples\n3. State any constraints (time/space complexity expectations)\n4. Make it solvable in 5-10 minutes\n5. Focus on ${courseSubject} concepts specifically\nCRITICAL: The problem MUST be ONLY about ${topicDescription}. Do not introduce other topics.\n\nPROBLEM FORMAT:\n[Problem Title]\n\nProblem: [Clear description of what needs to be solved]\n\nExample:\nInput: [sample input]\nOutput: [expected output]\nExplanation: [why this output is correct]\n\nConstraints:\n- [Time complexity expectation]\n- [Space complexity expectation]\n- [Any input constraints]\n\nDIFFICULTY LEVEL: ${difficulty}\n- Beginner: Simple iteration, basic array/string operations\n- Intermediate: Requires one key algorithm or data structure concept\n- Pro: Requires optimization or multiple concepts combined\n- Advanced: Complex optimization, multiple algorithms, edge cases\n\nDO NOT ASK THE CANDIDATE TO EXPLAIN - GIVE THEM A PROBLEM TO SOLVE.\nDO NOT USE CONVERSATIONAL LANGUAGE - BE DIRECT AND PROBLEM-FOCUSED.\nGENERATE A UNIQUE PROBLEM - AVOID REPEATING THE SAME PROBLEM STRUCTURE.\n\nPrevious problems asked: ${previousAnswers.map((qa: any) => qa.question.substring(0, 100)).join(" | ")}\n\nMAKE SURE THIS PROBLEM IS DIFFERENT FROM PREVIOUS ONES.`
+            // SET interviewContext for DSA
+            interviewContext = `🎯 DSA CODING PROBLEM - ${courseSubject.toUpperCase()}
+
+YOU ARE GENERATING A CODING PROBLEM, NOT AN INTERVIEW QUESTION.
+
+TOPIC: ${topicDescription}
+
+VALID PROBLEM TYPES FOR THIS TOPIC:
+${topicExamples.map((ex, i) => `${i + 1}. ${ex}`).join('\n')}
+
+⚠️ CRITICAL RESTRICTION: The problem MUST be ONLY about ${topicDescription}.
+ONLY generate problems from the VALID PROBLEM TYPES listed above.
+
+DO NOT generate problems about:
+- Topics from other DSA categories
+- Palindromes (unless it's specifically a string algorithm problem in arrays topic)
+- Problems that don't use ${courseSubject} concepts
+- Generic math or logic puzzles
+
+PROBLEM FORMAT:
+**Problem:** [Clear description - MUST be one of the valid problem types above]
+
+**Example:**
+Input: [sample input]
+Output: [expected output]
+Explanation: [why this output is correct]
+
+**Constraints:**
+- [Time complexity expectation]
+- [Space complexity expectation]
+- [Any input constraints]
+
+DIFFICULTY LEVEL: ${difficulty}
+- Beginner: Basic ${courseSubject} operations, straightforward implementation
+- Intermediate: Standard ${courseSubject} algorithms, one key technique
+- Pro: Optimization required, multiple techniques combined
+- Advanced: Complex edge cases, optimal solutions required
+
+Previous problems asked: ${previousAnswers.map((qa: any) => qa.question.substring(0, 100)).join(" | ")}
+
+GENERATE A UNIQUE PROBLEM FROM THE VALID PROBLEM TYPES. Make it different from previous ones.`
           } else if (isAptitude) {
-            const aptitudeTopics: Record<string, string> = {
-              quantitative: "Quantitative Aptitude - arithmetic, percentages, ratios, averages, profit & loss, time/speed/distance",
-              quant: "Quantitative Aptitude - arithmetic, percentages, ratios, averages, profit & loss, time/speed/distance",
-              logical: "Logical Reasoning - patterns, sequences, deductions, syllogisms, arrangements, puzzles",
-              "logical-reasoning": "Logical Reasoning - patterns, sequences, deductions, syllogisms, arrangements, puzzles",
-              verbal: "Verbal Ability - reading comprehension, sentence correction, synonyms/antonyms, para jumbles",
-              "verbal-reasoning": "Verbal Ability - reading comprehension, sentence correction, synonyms/antonyms, para jumbles",
-              "data-interpretation": "Data Interpretation - charts, tables, graphs, data sufficiency",
-              di: "Data Interpretation - charts, tables, graphs, data sufficiency",
-              analytical: "Analytical Reasoning - complex logic problems, critical thinking, deductions",
-              "analytical-reasoning": "Analytical Reasoning - complex logic problems, critical thinking, deductions",
-              "speed-accuracy": "Speed & Accuracy - time-bound calculations, quick problem-solving under pressure",
+            // Aptitude Topics - EXACTLY matching lib/courses.ts info descriptions
+            const aptitudeTopics: Record<string, { description: string; examples: string[] }> = {
+              quantitative: {
+                description: "Quantitative Aptitude - arithmetic, algebra, geometry, and number problems",
+                examples: [
+                  "Percentage calculations (discounts, increases, decreases)",
+                  "Profit and Loss problems",
+                  "Time, Speed, and Distance",
+                  "Work and Time (pipes, cisterns)",
+                  "Ratios and Proportions",
+                  "Simple and Compound Interest",
+                  "Averages and Mixtures",
+                  "Algebra (equations, inequalities)",
+                  "Geometry (areas, volumes, angles)",
+                  "Number series and sequences"
+                ]
+              },
+              quant: {
+                description: "Quantitative Aptitude - arithmetic, algebra, geometry, and number problems",
+                examples: [
+                  "Percentage calculations",
+                  "Profit and Loss",
+                  "Time, Speed, Distance",
+                  "Ratios and Proportions",
+                  "Algebra and Geometry"
+                ]
+              },
+              logical: {
+                description: "Logical Reasoning - puzzles, pattern recognition, and analytical problems",
+                examples: [
+                  "Number series (find the next number)",
+                  "Letter series (find the pattern)",
+                  "Syllogisms (All A are B, Some B are C...)",
+                  "Blood relations (A is B's mother's son...)",
+                  "Direction sense (walked north, turned left...)",
+                  "Seating arrangements (circular, linear)",
+                  "Coding-decoding (if CAT = XZG, then DOG = ?)",
+                  "Ranking and ordering",
+                  "Puzzles (who sits where, who does what)"
+                ]
+              },
+              "logical-reasoning": {
+                description: "Logical Reasoning - puzzles, pattern recognition, and analytical problems",
+                examples: [
+                  "Number/letter series",
+                  "Syllogisms",
+                  "Blood relations",
+                  "Direction sense",
+                  "Seating arrangements",
+                  "Coding-decoding"
+                ]
+              },
+              verbal: {
+                description: "Verbal Reasoning - comprehension, vocabulary, and language skills",
+                examples: [
+                  "Reading comprehension (passage + questions)",
+                  "Sentence correction / Error spotting",
+                  "Fill in the blanks (grammar/vocabulary)",
+                  "Synonyms and Antonyms",
+                  "Para jumbles (arrange sentences)",
+                  "One word substitution",
+                  "Idioms and phrases",
+                  "Sentence completion",
+                  "Cloze test passages"
+                ]
+              },
+              "verbal-reasoning": {
+                description: "Verbal Reasoning - comprehension, vocabulary, and language skills",
+                examples: [
+                  "Reading comprehension",
+                  "Sentence correction",
+                  "Synonyms/Antonyms",
+                  "Para jumbles",
+                  "Fill in the blanks"
+                ]
+              },
+              "data-interpretation": {
+                description: "Data Interpretation - analyzing charts, graphs, and tables for data-driven questions",
+                examples: [
+                  "Bar graph analysis (compare values, find percentages)",
+                  "Pie chart problems (calculate sectors, ratios)",
+                  "Line graph interpretation (trends, growth rates)",
+                  "Table data analysis (find averages, totals)",
+                  "Mixed charts (multiple data sources)",
+                  "Data sufficiency (is the data enough to answer?)",
+                  "Caselet-based questions (text + data)"
+                ]
+              },
+              di: {
+                description: "Data Interpretation - analyzing charts, graphs, and tables",
+                examples: [
+                  "Bar graphs",
+                  "Pie charts",
+                  "Line graphs",
+                  "Tables",
+                  "Data sufficiency"
+                ]
+              },
+              analytical: {
+                description: "Analytical Reasoning - complex logic problems and critical thinking questions",
+                examples: [
+                  "Statement and Assumptions",
+                  "Statement and Conclusions",
+                  "Statement and Arguments",
+                  "Cause and Effect",
+                  "Course of Action",
+                  "Critical reasoning passages",
+                  "Strengthening/Weakening arguments",
+                  "Inference-based questions",
+                  "Assertion and Reason"
+                ]
+              },
+              "analytical-reasoning": {
+                description: "Analytical Reasoning - complex logic problems and critical thinking",
+                examples: [
+                  "Statement-Assumptions",
+                  "Statement-Conclusions",
+                  "Cause and Effect",
+                  "Critical reasoning"
+                ]
+              },
+              "speed-accuracy": {
+                description: "Speed & Accuracy - time-bound calculations and quick problem-solving",
+                examples: [
+                  "Quick mental math (addition, subtraction, multiplication)",
+                  "Approximation problems",
+                  "Simplification (BODMAS)",
+                  "Number comparisons",
+                  "Percentage shortcuts",
+                  "Square roots and cubes",
+                  "Decimal and fraction conversions",
+                  "Quick calculations under time pressure"
+                ]
+              }
             }
 
-            const topicDescription = aptitudeTopics[courseSubject] || "Aptitude"
+            const topicData = aptitudeTopics[courseSubject] || { description: "General Aptitude", examples: [] }
+            const topicDescription = topicData.description
+            const topicExamples = topicData.examples
 
-            courseContext = `\n\n🎯 APTITUDE PROBLEM - ${courseSubject.toUpperCase()}\n\nYOU ARE GENERATING AN APTITUDE QUESTION, NOT A CONVERSATIONAL INTERVIEW QUESTION.\n\nREQUIREMENTS:\n1. Provide ONE clear, concise aptitude problem related to: ${topicDescription}\nCRITICAL: The problem MUST be ONLY about ${topicDescription}. Do not introduce other topics.\n2. Keep it self-contained with necessary data (no external context)\n3. No solution, no hints, no multi-part subquestions\n4. Target difficulty: ${difficulty.toUpperCase()}\n\nFORMAT:\n[Problem Statement]\n(Include any numbers, tables, or conditions needed)\n\nPrevious problems asked: ${previousAnswers.map((qa: any) => qa.question.substring(0, 100)).join(" | ")}\n\nMAKE SURE THIS PROBLEM IS DIFFERENT FROM PREVIOUS ONES. Keep it brief (1-3 sentences).`
+            // SET interviewContext for Aptitude
+            interviewContext = `🎯 APTITUDE PROBLEM - ${courseSubject.toUpperCase()}
+
+YOU ARE GENERATING AN APTITUDE QUESTION, NOT A CODING PROBLEM.
+
+TOPIC: ${topicDescription}
+
+VALID QUESTION TYPES FOR THIS TOPIC:
+${topicExamples.map((ex, i) => `${i + 1}. ${ex}`).join('\n')}
+
+⚠️ CRITICAL RESTRICTION: 
+- The question MUST be from the VALID QUESTION TYPES listed above
+- DO NOT generate coding/programming problems
+- DO NOT generate DSA problems
+- DO NOT generate questions from other aptitude categories
+
+REQUIREMENTS:
+1. Generate ONE clear aptitude problem from the valid types above
+2. Include all necessary data in the problem itself
+3. No hints or solutions
+4. Difficulty: ${difficulty.toUpperCase()}
+
+FORMAT:
+[Problem Statement with all necessary data]
+
+${courseSubject === 'verbal' || courseSubject === 'verbal-reasoning' ? `
+REMEMBER: This is VERBAL reasoning - focus on language, grammar, vocabulary, comprehension.
+Example formats:
+- "Choose the correct word: The project was _____ (accepted/excepted) by the committee."
+- "Find the error: 'He don't know the answer.' - identify and correct"
+- Short passage followed by comprehension question
+` : ''}
+${courseSubject === 'logical' || courseSubject === 'logical-reasoning' ? `
+REMEMBER: This is LOGICAL reasoning - focus on patterns, deductions, arrangements.
+Example formats:
+- "Find the next number: 2, 6, 12, 20, 30, ?"
+- "If A is B's brother and C is A's mother, how is B related to C?"
+- "5 people sit in a row. A sits next to B but not C..."
+` : ''}
+${courseSubject === 'quantitative' || courseSubject === 'quant' ? `
+REMEMBER: This is QUANTITATIVE aptitude - focus on math, calculations, formulas.
+Example formats:
+- "A shopkeeper sells an item at 20% profit. If cost price is Rs. 500, find selling price."
+- "A train travels 300km in 5 hours. Find its speed in m/s."
+- "Find the area of a triangle with base 10cm and height 8cm."
+` : ''}
+${courseSubject === 'data-interpretation' || courseSubject === 'di' ? `
+REMEMBER: This is DATA INTERPRETATION - you MUST include data (table/chart description).
+Example format:
+"The following table shows sales (in lakhs) for 5 products:
+Product A: 120, Product B: 85, Product C: 150, Product D: 95, Product E: 110
+Question: What is the percentage contribution of Product C to total sales?"
+` : ''}
+${courseSubject === 'analytical' || courseSubject === 'analytical-reasoning' ? `
+REMEMBER: This is ANALYTICAL reasoning - focus on critical thinking, arguments, conclusions.
+Example formats:
+- "Statement: All successful people wake up early. Conclusion: Waking up early guarantees success. Is the conclusion valid?"
+- "Statement: The company's profits have declined. Assumption: The company had profits before. Is this assumption implicit?"
+` : ''}
+${courseSubject === 'speed-accuracy' ? `
+REMEMBER: This is SPEED & ACCURACY - focus on quick calculations.
+Example formats:
+- "Calculate quickly: 17 × 23 = ?"
+- "Approximate: 4987 ÷ 51 ≈ ?"
+- "Simplify: (25 × 16) ÷ (5 × 4) = ?"
+` : ''}
+
+Previous problems asked: ${previousAnswers.map((qa: any) => qa.question.substring(0, 100)).join(" | ")}
+
+GENERATE A UNIQUE PROBLEM FROM THE VALID QUESTION TYPES. Keep it concise (1-4 sentences).`
           } else if (courseName && courseSubject) {
-            const courseMap: Record<string, Record<string, string>> = {
+            // Course Topics - EXACTLY matching lib/courses.ts info descriptions
+            const courseMap: Record<string, Record<string, { description: string; topics: string[] }>> = {
               frontend: {
-                react:
-                  "React.js framework - components, hooks, state management, context API, performance optimization, virtual DOM, JSX, lifecycle methods",
-                vue: "Vue.js framework - components, directives, Vuex, composition API, reactivity system, Vue Router",
-                angular:
-                  "Angular framework - components, services, dependency injection, RxJS, TypeScript, modules, directives",
-                javascript:
-                  "Core JavaScript - ES6+, closures, promises, async/await, prototypes, event loop, DOM manipulation",
-                html: "HTML5 - semantic elements, forms, accessibility, SEO best practices",
-                css: "CSS3 - flexbox, grid, animations, responsive design, preprocessors, CSS-in-JS",
+                react: {
+                  description: "React - Build interactive UIs with React hooks and components",
+                  topics: ["Hooks (useState, useEffect, useContext, useMemo, useCallback)", "Component lifecycle", "State management", "Context API", "Virtual DOM", "JSX", "Performance optimization", "React Router"]
+                },
+                vue: {
+                  description: "Vue.js - Create reactive applications with Vue's composition API",
+                  topics: ["Composition API", "Reactivity system", "Vue Router", "Vuex/Pinia", "Components", "Directives", "Lifecycle hooks", "Computed properties"]
+                },
+                angular: {
+                  description: "Angular - Develop enterprise apps with TypeScript and RxJS",
+                  topics: ["TypeScript", "RxJS observables", "Dependency injection", "Services", "Modules", "Components", "Directives", "Angular CLI", "Forms (reactive/template)"]
+                },
+                nextjs: {
+                  description: "Next.js - Master server-side rendering and static site generation",
+                  topics: ["SSR (Server-Side Rendering)", "SSG (Static Site Generation)", "ISR (Incremental Static Regeneration)", "API routes", "App Router", "Middleware", "Image optimization", "Data fetching"]
+                },
+                typescript: {
+                  description: "TypeScript - Write type-safe JavaScript for scalable applications",
+                  topics: ["Type annotations", "Interfaces", "Generics", "Type guards", "Utility types", "Enums", "Decorators", "Type inference", "Strict mode"]
+                },
+                tailwind: {
+                  description: "Tailwind CSS - Design modern UIs with utility-first CSS framework",
+                  topics: ["Utility classes", "Responsive design", "Custom configurations", "Plugins", "JIT mode", "Component patterns", "Dark mode", "Animations"]
+                }
               },
               backend: {
-                node: "Node.js - Express, middleware, RESTful APIs, authentication, database integration, async patterns",
-                python: "Python backend - Django/Flask, APIs, database ORMs, authentication, deployment",
-                java: "Java backend - Spring Boot, REST APIs, JPA/Hibernate, microservices, security",
-                php: "PHP backend - Laravel/Symfony, MVC, databases, authentication, web services",
-                ruby: "Ruby on Rails - MVC, ActiveRecord, routing, authentication, testing",
-                go: "Go backend - Goroutines, HTTP servers, concurrency, database access, microservices",
+                nodejs: {
+                  description: "Node.js - Build scalable server applications with JavaScript runtime",
+                  topics: ["Express.js", "Middleware", "RESTful APIs", "Authentication (JWT, OAuth)", "Database integration", "Async patterns", "Streams", "Clustering", "Error handling"]
+                },
+                python: {
+                  description: "Python - Create robust backends with Django and Flask frameworks",
+                  topics: ["Django/Flask", "REST APIs", "ORM (SQLAlchemy, Django ORM)", "Authentication", "Middleware", "Deployment", "Celery (async tasks)", "Testing"]
+                },
+                java: {
+                  description: "Java - Develop enterprise applications with Spring Boot",
+                  topics: ["Spring Boot", "REST APIs", "JPA/Hibernate", "Dependency injection", "Microservices", "Security (Spring Security)", "Testing", "Maven/Gradle"]
+                },
+                go: {
+                  description: "Go - Build high-performance concurrent services",
+                  topics: ["Goroutines", "Channels", "HTTP servers", "Concurrency patterns", "Database access", "Microservices", "Error handling", "Testing"]
+                },
+                dotnet: {
+                  description: ".NET - Create modern applications with ASP.NET Core",
+                  topics: ["ASP.NET Core", "Entity Framework", "Web APIs", "Dependency injection", "Middleware", "Authentication", "SignalR", "Blazor"]
+                },
+                rust: {
+                  description: "Rust - Write memory-safe systems programming code",
+                  topics: ["Ownership", "Borrowing", "Lifetimes", "Async runtime (Tokio)", "Actix/Axum", "Error handling", "Memory safety", "Performance optimization"]
+                }
               },
-              database: {
-                sql: "SQL databases - PostgreSQL/MySQL, queries, joins, indexes, normalization, transactions",
-                mongodb: "MongoDB - NoSQL, documents, collections, aggregation, indexes, replication",
-                redis: "Redis - caching, data structures, pub/sub, performance optimization",
+              fullstack: {
+                mern: {
+                  description: "MERN Stack - MongoDB, Express, React, and Node.js ecosystem",
+                  topics: ["MongoDB (queries, aggregation)", "Express.js", "React", "Node.js", "RESTful APIs", "State management", "Authentication", "Deployment"]
+                },
+                mean: {
+                  description: "MEAN Stack - Build Angular applications with Node.js backend",
+                  topics: ["MongoDB", "Express.js", "Angular", "Node.js", "TypeScript", "RxJS", "Authentication", "Full-stack architecture"]
+                },
+                lamp: {
+                  description: "LAMP Stack - Traditional web development with Linux, Apache, MySQL, PHP",
+                  topics: ["Linux server", "Apache configuration", "MySQL", "PHP", "MVC patterns", "Database design", "Security", "Deployment"]
+                },
+                jamstack: {
+                  description: "JAMstack - Modern web architecture with JavaScript, APIs, and Markup",
+                  topics: ["Static site generators (Gatsby, Hugo)", "Headless CMS", "Serverless functions", "CDN deployment", "APIs", "Pre-rendering", "Performance"]
+                },
+                serverless: {
+                  description: "Serverless - Build scalable apps without managing infrastructure",
+                  topics: ["AWS Lambda", "Azure Functions", "Event-driven design", "Cold starts", "Function composition", "API Gateway", "DynamoDB", "Cost optimization"]
+                },
+                microservices: {
+                  description: "Microservices - Design distributed systems with service architecture",
+                  topics: ["Service decomposition", "API design", "Inter-service communication", "Event sourcing", "CQRS", "Service mesh", "Containerization", "Monitoring"]
+                }
+              },
+              datascience: {
+                "python-ds": {
+                  description: "Python for DS - Master NumPy, Pandas, and data visualization libraries",
+                  topics: ["NumPy arrays", "Pandas DataFrames", "Data manipulation", "Data cleaning", "Exploratory data analysis", "Matplotlib", "Seaborn", "Jupyter notebooks"]
+                },
+                ml: {
+                  description: "Machine Learning - Build predictive models with scikit-learn and algorithms",
+                  topics: ["Supervised learning", "Unsupervised learning", "scikit-learn", "Model training", "Cross-validation", "Feature engineering", "Hyperparameter tuning", "Model evaluation"]
+                },
+                deeplearning: {
+                  description: "Deep Learning - Create neural networks with TensorFlow and PyTorch",
+                  topics: ["Neural networks", "TensorFlow", "PyTorch", "CNNs", "RNNs", "Transformers", "Model optimization", "GPU training", "Transfer learning"]
+                },
+                nlp: {
+                  description: "NLP - Process and analyze natural language data",
+                  topics: ["Text preprocessing", "Tokenization", "Word embeddings", "Sentiment analysis", "Named entity recognition", "Transformers (BERT, GPT)", "Text classification"]
+                },
+                sql: {
+                  description: "SQL & Databases - Query and manage relational database systems",
+                  topics: ["Complex queries", "JOINs", "Window functions", "Indexing", "Query optimization", "Database design", "Stored procedures", "Transactions"]
+                },
+                analytics: {
+                  description: "Data Analytics - Extract insights from data with statistical analysis",
+                  topics: ["Statistical analysis", "Hypothesis testing", "A/B testing", "Data visualization", "Business intelligence", "Reporting", "KPIs", "Dashboards"]
+                }
               },
               devops: {
-                docker: "Docker - containers, images, Docker Compose, networking, volumes",
-                kubernetes: "Kubernetes - pods, services, deployments, scaling, orchestration",
-                aws: "AWS - EC2, S3, Lambda, RDS, CloudFormation, architecture design",
-                cicd: "CI/CD - pipelines, automated testing, deployment strategies, GitOps",
+                docker: {
+                  description: "Docker - Containerize applications for consistent deployment",
+                  topics: ["Containers", "Images", "Dockerfile", "Docker Compose", "Networking", "Volumes", "Multi-stage builds", "Best practices"]
+                },
+                kubernetes: {
+                  description: "Kubernetes - Orchestrate and manage containerized workloads",
+                  topics: ["Pods", "Services", "Deployments", "ConfigMaps", "Secrets", "Scaling", "Helm", "Monitoring", "Ingress"]
+                },
+                aws: {
+                  description: "AWS - Deploy scalable cloud infrastructure on Amazon Web Services",
+                  topics: ["EC2", "S3", "Lambda", "RDS", "CloudFormation", "IAM", "VPC", "Architecture design", "Cost optimization"]
+                },
+                gcp: {
+                  description: "Google Cloud - Build applications on Google Cloud Platform",
+                  topics: ["Compute Engine", "Cloud Functions", "BigQuery", "Cloud Storage", "Kubernetes Engine", "IAM", "Cloud Run", "Pub/Sub"]
+                },
+                azure: {
+                  description: "Azure - Create enterprise solutions with Microsoft Azure",
+                  topics: ["Virtual Machines", "App Service", "Azure Functions", "Cosmos DB", "Azure DevOps", "Active Directory", "Storage", "Networking"]
+                },
+                cicd: {
+                  description: "CI/CD Pipelines - Automate testing and deployment workflows",
+                  topics: ["Pipeline design", "Automated testing", "Deployment strategies", "GitOps", "Jenkins", "GitHub Actions", "GitLab CI", "ArgoCD"]
+                }
               },
               mobile: {
-                react: "React Native - mobile components, navigation, state management, native modules",
-                flutter: "Flutter - widgets, state management, Dart, animations, platform integration",
-                ios: "iOS development - Swift, UIKit, SwiftUI, Core Data, networking",
-                android: "Android development - Kotlin, Activities, Fragments, Room, MVVM",
+                reactnative: {
+                  description: "React Native - Build cross-platform apps with React for mobile",
+                  topics: ["React Native components", "Navigation", "State management", "Native modules", "Expo", "Platform-specific code", "Performance", "Debugging"]
+                },
+                flutter: {
+                  description: "Flutter - Create beautiful native apps with Dart framework",
+                  topics: ["Widgets", "State management (Provider, Riverpod, Bloc)", "Dart language", "Animations", "Platform integration", "Navigation", "Testing"]
+                },
+                swift: {
+                  description: "Swift (iOS) - Develop native iOS applications with Swift",
+                  topics: ["Swift language", "UIKit", "SwiftUI", "Core Data", "Networking", "App lifecycle", "Auto Layout", "App Store guidelines"]
+                },
+                kotlin: {
+                  description: "Kotlin (Android) - Build modern Android apps with Kotlin language",
+                  topics: ["Kotlin language", "Jetpack Compose", "Activities", "Fragments", "Room database", "MVVM", "Coroutines", "Navigation"]
+                },
+                xamarin: {
+                  description: "Xamarin - Create cross-platform apps with C# and .NET",
+                  topics: ["C#", ".NET", "XAML", "Xamarin.Forms", "Native API access", "MVVM", "Platform-specific code", "Testing"]
+                },
+                ionic: {
+                  description: "Ionic - Build hybrid mobile apps with web technologies",
+                  topics: ["Angular/React/Vue integration", "Capacitor", "Hybrid apps", "Web technologies", "Native plugins", "PWA", "Theming", "Performance"]
+                }
               },
+              productmgmt: {
+                strategy: {
+                  description: "Product Strategy - Define vision, goals, and product roadmaps",
+                  topics: ["Vision setting", "Market analysis", "Competitive positioning", "Product-market fit", "Roadmap prioritization", "OKRs", "Go-to-market strategy"]
+                },
+                research: {
+                  description: "User Research - Understand user needs through research and testing",
+                  topics: ["User interviews", "Surveys", "Usability testing", "Personas", "Journey mapping", "A/B testing", "Analytics interpretation", "Feedback loops"]
+                },
+                analytics: {
+                  description: "Product Analytics - Make data-driven decisions with metrics and KPIs",
+                  topics: ["Metrics definition", "KPIs", "Funnel analysis", "Cohort analysis", "Retention metrics", "Data-driven decisions", "Dashboards", "Experimentation"]
+                },
+                roadmap: {
+                  description: "Roadmap Planning - Prioritize features and plan product releases",
+                  topics: ["Feature prioritization", "Release planning", "Stakeholder alignment", "Resource allocation", "Timeline estimation", "Dependencies", "Trade-offs"]
+                },
+                stakeholder: {
+                  description: "Stakeholder Mgmt - Align teams and communicate with stakeholders",
+                  topics: ["Executive communication", "Cross-functional collaboration", "Conflict resolution", "Alignment strategies", "Presentations", "Status updates"]
+                },
+                agile: {
+                  description: "Agile & Scrum - Manage projects with agile methodologies",
+                  topics: ["Sprint planning", "Backlog grooming", "Retrospectives", "User stories", "Estimation techniques", "Agile ceremonies", "Kanban", "Velocity"]
+                }
+              },
+              qa: {
+                manual: {
+                  description: "Manual Testing - Learn testing fundamentals and test case design",
+                  topics: ["Test case design", "Test planning", "Exploratory testing", "Regression testing", "Bug reporting", "Test documentation", "Test scenarios", "Edge cases"]
+                },
+                automation: {
+                  description: "Test Automation - Automate testing with frameworks and best practices",
+                  topics: ["Test frameworks", "Page Object Model", "Test data management", "CI integration", "Test reporting", "Best practices", "Maintainability"]
+                },
+                selenium: {
+                  description: "Selenium - Perform browser automation and web testing",
+                  topics: ["WebDriver", "Locators", "Waits (implicit/explicit)", "Cross-browser testing", "Selenium Grid", "Framework integration", "Handling alerts/frames"]
+                },
+                performance: {
+                  description: "Performance Testing - Test application speed, scalability, and stability",
+                  topics: ["Load testing", "Stress testing", "JMeter", "k6", "Performance metrics", "Bottleneck identification", "Optimization", "Monitoring"]
+                },
+                security: {
+                  description: "Security Testing - Identify vulnerabilities and security flaws",
+                  topics: ["OWASP Top 10", "Penetration testing", "Vulnerability assessment", "Security scanning tools", "Secure coding", "Authentication testing", "SQL injection"]
+                },
+                api: {
+                  description: "API Testing - Validate REST APIs and microservices endpoints",
+                  topics: ["REST API testing", "Postman", "Request/response validation", "Authentication testing", "Contract testing", "Mocking", "Status codes", "Error handling"]
+                }
+              }
             }
 
-            const topicDescription =
-              courseMap[courseName]?.[courseSubject] || `${courseName} ${courseSubject} development`
+            const topicData = courseMap[courseName]?.[courseSubject]
+            const topicDescription = topicData?.description || `${courseName} ${courseSubject} development`
+            const topicsList = topicData?.topics || []
 
-            courseContext = `\n\n🎯 COURSE FOCUS: ${courseName.toUpperCase()} - ${courseSubject.toUpperCase()}\nThis is a specialized ${courseName} interview focusing on ${courseSubject}.\n\nTECHNICAL TOPICS TO COVER:\n${topicDescription}\n\nYOUR QUESTIONS MUST:\n1. Be directly related to ${courseSubject} ${courseName} development\n2. Cover practical, real-world scenarios specific to ${courseSubject}\n3. Test understanding of ${courseSubject} concepts, not generic programming\n4. Ask about best practices, common challenges, and optimization in ${courseSubject}\n5. Reference ${courseSubject}-specific tools, libraries, and patterns\n\nEXAMPLES OF GOOD ${courseSubject.toUpperCase()} QUESTIONS:\n- "How would you optimize performance in a ${courseSubject} application?"\n- "Explain how [specific ${courseSubject} concept] works and when you\'d use it"\n- "Walk me through debugging a common ${courseSubject} issue you\'ve encountered"\n- "What are the trade-offs between [approach A] and [approach B] in ${courseSubject}?"\n\nDO NOT ask generic programming questions. Keep it focused on ${courseSubject} ${courseName}.\nDIFFICULTY: ${difficulty}\nPrevious questions (avoid any overlap or paraphrase):\n${previousAnswers.map((qa: any, idx: number) => `${idx + 1}. ${qa.question}`).join("\n")}`
+            courseContext = `\n\n🎯 COURSE FOCUS: ${courseName.toUpperCase()} - ${courseSubject.toUpperCase()}
+
+TOPIC: ${topicDescription}
+
+KEY TOPICS TO ASK ABOUT:
+${topicsList.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+YOUR QUESTIONS MUST:
+1. Be directly related to the KEY TOPICS listed above
+2. Cover practical, real-world scenarios specific to ${courseSubject}
+3. Test understanding of ${courseSubject} concepts, not generic programming
+4. Ask about best practices, common challenges, and optimization
+
+⚠️ DO NOT ask questions about other technologies or generic programming.
+
+DIFFICULTY: ${difficulty}
+Previous questions (avoid repetition):
+${previousAnswers.map((qa: any, idx: number) => `${idx + 1}. ${qa.question}`).join("\n")}`
           }
 
           if (interviewType === "custom" && customScenario) {
@@ -394,16 +890,16 @@ export async function POST(request: Request) {
 
         const { text } = await generateTextWithRetry(
           groqClient("llama-3.3-70b-versatile"),
-          (isDSAInterview || isAptitude)
+          isDSAInterview
             ? `${interviewContext}${difficultyContext}
 
 This is coding problem number ${questionNumber} out of ${questionCount}.
-${isDSAInterview ? previousContext : ''}
+${previousContext}
 
-CRITICAL: You are generating a CODING PROBLEM, not a conversational question.
+CRITICAL: You are generating a CODING PROBLEM for ${courseSubject.toUpperCase()}, not a conversational question.
 
 REQUIRED FORMAT:
-**Problem:** [Clear problem statement]
+**Problem:** [Clear problem statement - MUST be about ${courseSubject}]
 
 **Example:**
 Input: [example input]
@@ -413,7 +909,16 @@ Output: [example output]
 - [time/space complexity requirements]
 - [input size/range]
 
-Generate ONE unique coding problem. Make it different from any previous problems in this interview.`
+Generate ONE unique ${courseSubject} coding problem. Make it different from any previous problems in this interview.`
+            : isAptitude
+            ? `${interviewContext}${difficultyContext}
+
+This is aptitude problem number ${questionNumber} out of ${questionCount}.
+${previousContext}
+
+CRITICAL: You are generating an APTITUDE PROBLEM for ${courseSubject.toUpperCase()}, NOT a coding problem.
+
+Generate ONE clear, concise ${courseSubject} aptitude problem. Return ONLY the problem statement.`
             : `${interviewContext}${questionNumber === 1 ? "" : difficultyContext}${questionNumber === 1 ? "" : personalizationContext}
       
 This is question number ${questionNumber}.

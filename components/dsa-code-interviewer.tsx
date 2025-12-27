@@ -3,13 +3,16 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { useTextToSpeech } from "@/hooks/use-text-to-speech"; // Added
+import { useTextToSpeech } from "@/hooks/use-text-to-speech"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { Loader2, Send } from "lucide-react"
 import { InterviewTimer } from "@/components/interview-timer"
-import { getInterviewCost } from "@/utils/credits"; // Added
+import { getInterviewCost } from "@/utils/credits"
+import { ExitInterviewDialog } from "./exit-interview-dialog"
+import { StartInterviewDialog } from "./start-interview-dialog"
+import { useInterviewContext } from "@/contexts/interview-context"
 
 interface DSACodeInterviewerProps {
   interviewType: string
@@ -25,7 +28,7 @@ interface TranscriptMessage {
 export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewerProps) {
   const router = useRouter()
   const supabase = createClient()
-  const { speak } = useTextToSpeech({ rate: 0.9 }); // Set speech rate here
+  const { speak } = useTextToSpeech({ rate: 0.9 })
   const isAptitude = interviewType.startsWith("aptitude")
 
   const [interviewId, setInterviewId] = useState<string | null>(null)
@@ -36,14 +39,24 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
   const [isLoading, setIsLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(true)
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([])
-  const [questionHistory, setQuestionHistory] = useState<Array<{ question: string; userCode: string }>>([]); // Changed userCode to string
+  const [questionHistory, setQuestionHistory] = useState<Array<{ question: string; userCode: string }>>([])
   const [error, setError] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [analysisData, setAnalysisData] = useState<any>(null)
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
-  const [balance, setBalance] = useState<number | null>(null); // Added
-  const pathname = usePathname(); // Added
+  const [balance, setBalance] = useState<number | null>(null)
+  const [showEndConfirmDialog, setShowEndConfirmDialog] = useState(false)
+  const [showStartConfirmDialog, setShowStartConfirmDialog] = useState(false)
+  const pathname = usePathname()
+
+  // Interview context for navbar communication
+  let interviewContext: ReturnType<typeof useInterviewContext> | null = null
+  try {
+    interviewContext = useInterviewContext()
+  } catch {
+    // Context not available (component used outside provider)
+  }
 
   const transcriptEndRef = useRef<HTMLDivElement>(null)
 
@@ -133,12 +146,21 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
     }
   }, [])
 
-  const startInterview = async (duration: number) => {
+  const handleStartClick = (duration: number) => {
     if (!selectedDifficulty) {
       setError("Please select a difficulty level")
       return
     }
+    setSelectedDuration(duration)
+    setShowStartConfirmDialog(true)
+  }
 
+  const confirmStartInterview = async () => {
+    if (!selectedDuration || !selectedDifficulty) {
+      return
+    }
+
+    setShowStartConfirmDialog(false)
     setIsLoading(true)
     setError(null)
 
@@ -153,7 +175,7 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
         return
       }
 
-      const cost = getInterviewCost(duration);
+      const cost = getInterviewCost(selectedDuration);
       if (balance !== null && balance < cost) {
         setError(`Not enough credits. This interview costs ${cost} credits, but you only have ${balance}.`);
         setIsLoading(false);
@@ -168,7 +190,7 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
           userId: user.id,
           userEmail: user.email,
           userName: user.user_metadata?.name || user.email?.split("@")[0],
-          duration,
+          duration: selectedDuration,
           difficulty: selectedDifficulty,
         }),
       })
@@ -190,6 +212,15 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
         setInterviewId(data.interview.id)
         setTotalQuestions(data.interview.question_count || 5)
         setShowWelcome(false)
+
+        // Update interview context for navbar
+        const cost = getInterviewCost(selectedDuration)
+        if (interviewContext) {
+          interviewContext.setInterviewStarted(true)
+          interviewContext.setCreditsUsed(cost)
+          interviewContext.setTotalQuestions(data.interview.question_count || 5)
+          interviewContext.setInterviewId(data.interview.id)
+        }
 
         await generateNextQuestion(data.interview.id, 1, [], user.id, "initial")
       }
@@ -349,6 +380,11 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
         const nextQuestionIndex = currentQuestionIndex + 1
         setCurrentQuestionIndex(nextQuestionIndex)
 
+        // Update questions answered in context
+        if (interviewContext) {
+          interviewContext.setQuestionsAnswered(nextQuestionIndex)
+        }
+
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -363,6 +399,10 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
           )
         }
       } else {
+        // Update final questions answered count
+        if (interviewContext) {
+          interviewContext.setQuestionsAnswered(totalQuestions)
+        }
         await completeInterview()
       }
     } catch (error) {
@@ -609,10 +649,7 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
               {[15, 30, 45].map((duration) => (
                 <Button
                   key={duration}
-                  onClick={() => {
-                    setSelectedDuration(duration)
-                    startInterview(duration)
-                  }}
+                  onClick={() => handleStartClick(duration)}
                   disabled={isLoading || !selectedDifficulty}
                   className="h-20"
                 >
@@ -622,6 +659,18 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
             </div>
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
           </div>
+
+          {/* Start Interview Credit Confirmation Dialog */}
+          <StartInterviewDialog
+            isOpen={showStartConfirmDialog}
+            onClose={() => setShowStartConfirmDialog(false)}
+            onConfirm={confirmStartInterview}
+            creditCost={selectedDuration ? getInterviewCost(selectedDuration) : 0}
+            currentBalance={balance ?? 0}
+            duration={selectedDuration ?? 15}
+            difficulty={selectedDifficulty ?? "intermediate"}
+            interviewType={interviewType}
+          />
         </Card>
       </div>
     )
@@ -715,10 +764,24 @@ export default function DSACodeInterviewer({ interviewType }: DSACodeInterviewer
             >
               Next Question
             </Button>
-            <Button variant="outline" onClick={completeInterview} disabled={isLoading || !interviewId}>
+            <Button variant="outline" onClick={() => setShowEndConfirmDialog(true)} disabled={isLoading || !interviewId}>
               End Interview
             </Button>
           </div>
+
+          {/* End Interview Confirmation Dialog */}
+          <ExitInterviewDialog
+            isOpen={showEndConfirmDialog}
+            onClose={() => setShowEndConfirmDialog(false)}
+            onConfirm={() => {
+              setShowEndConfirmDialog(false)
+              completeInterview()
+            }}
+            isInterviewStarted={!showWelcome}
+            creditsUsed={selectedDuration ? getInterviewCost(selectedDuration) : 0}
+            questionsAnswered={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+          />
         </Card>
       </div>
 

@@ -9,8 +9,8 @@ import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useTextToSpeech } from "@/hooks/use-text-to-speech"
 import { useVoiceAgent } from "@/hooks/use-voice-agent"
 import { createClient } from "@/lib/supabase/client"
-import { usePathname } from "next/navigation"; // Added
-import { getInterviewCost } from "@/utils/credits"; // Added
+import { usePathname } from "next/navigation"
+import { getInterviewCost } from "@/utils/credits"
 import "@/app/interview/interview-mobile-landscape.css"
 import {
   AlertDialog,
@@ -21,7 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { InterviewTimer } from "@/components/interview-timer" // Added import
+import { InterviewTimer } from "@/components/interview-timer"
+import { ExitInterviewDialog } from "./exit-interview-dialog"
+import { StartInterviewDialog } from "./start-interview-dialog"
+import { useInterviewContext } from "@/contexts/interview-context"
 
 interface AudioVideoInterviewerProps {
   interviewType: string
@@ -48,8 +51,18 @@ export default function AudioVideoInterviewer({
 }: AudioVideoInterviewerProps) {
   const router = useRouter()
   const [scheduledInterviewIdState, setScheduledInterviewIdState] = useState<string | null>(null)
-  const [hasStarted, setHasStarted] = useState(false) // New state variable
-  const [isInterviewComplete, setIsInterviewComplete] = useState(false) // Added state variable
+  const [hasStarted, setHasStarted] = useState(false)
+  const [isInterviewComplete, setIsInterviewComplete] = useState(false)
+  const [showEndConfirmDialog, setShowEndConfirmDialog] = useState(false)
+  const [showStartConfirmDialog, setShowStartConfirmDialog] = useState(false)
+  
+  // Interview context for navbar communication
+  let interviewContext: ReturnType<typeof useInterviewContext> | null = null
+  try {
+    interviewContext = useInterviewContext()
+  } catch {
+    // Context not available (component used outside provider)
+  }
 
   useEffect(() => {
     // Only access search params on client side after mount
@@ -505,8 +518,18 @@ export default function AudioVideoInterviewer({
       return
     }
 
+    // Show the credit confirmation dialog
     setShowSetupDialog(false)
-    setHasStarted(true) // Set hasStarted to true
+    setShowStartConfirmDialog(true)
+  }
+
+  const confirmStartInterview = async () => {
+    if (!selectedDuration || !selectedDifficulty) {
+      return
+    }
+
+    setShowStartConfirmDialog(false)
+    setHasStarted(true)
     
     const cost = getInterviewCost(selectedDuration);
     if (balance !== null && balance < cost) {
@@ -579,6 +602,15 @@ export default function AudioVideoInterviewer({
         setInterviewId(data.interview.id)
         setTotalQuestions(data.interview.question_count || 5)
         setShowWelcome(false)
+
+        // Update interview context for navbar
+        const cost = getInterviewCost(duration)
+        if (interviewContext) {
+          interviewContext.setInterviewStarted(true)
+          interviewContext.setCreditsUsed(cost)
+          interviewContext.setTotalQuestions(data.interview.question_count || 5)
+          interviewContext.setInterviewId(data.interview.id)
+        }
 
         if (faceAnalysisRef.current) {
           await faceAnalysisRef.current.startCamera()
@@ -780,7 +812,13 @@ export default function AudioVideoInterviewer({
       if (currentQuestionIndex < totalQuestions - 1) {
         const nextQuestionIndex = currentQuestionIndex + 1
         setCurrentQuestionIndex(nextQuestionIndex)
-    const {
+        
+        // Update questions answered in context
+        if (interviewContext) {
+          interviewContext.setQuestionsAnswered(nextQuestionIndex)
+        }
+        
+        const {
           data: { user },
         } = await supabase.auth.getUser()
         if (user) {
@@ -788,6 +826,10 @@ export default function AudioVideoInterviewer({
           await generateNextQuestion(interviewId, nextQuestionIndex + 1, newResponses, user.id)
         }
       } else {
+        // Update final questions answered count
+        if (interviewContext) {
+          interviewContext.setQuestionsAnswered(totalQuestions)
+        }
         await handleInterviewCompletion(newResponses)
       }
     } catch (error) {
@@ -800,8 +842,14 @@ export default function AudioVideoInterviewer({
     }
   }
 
-  const handleEndInterview = async () => {
+  const handleEndInterview = () => {
     if (showResults) return
+    // Show confirmation dialog instead of immediately ending
+    setShowEndConfirmDialog(true)
+  }
+
+  const confirmEndInterview = async () => {
+    setShowEndConfirmDialog(false)
     stopAllSpeech()
     await completeInterview()
   }
@@ -1455,6 +1503,18 @@ export default function AudioVideoInterviewer({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Start Interview Credit Confirmation Dialog - for welcome screen */}
+        <StartInterviewDialog
+          isOpen={showStartConfirmDialog}
+          onClose={() => setShowStartConfirmDialog(false)}
+          onConfirm={confirmStartInterview}
+          creditCost={selectedDuration ? getInterviewCost(selectedDuration) : 0}
+          currentBalance={balance ?? 0}
+          duration={selectedDuration ?? 15}
+          difficulty={selectedDifficulty ?? "intermediate"}
+          interviewType={interviewType}
+        />
       </div>
     )
   }
@@ -1596,6 +1656,29 @@ export default function AudioVideoInterviewer({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* End Interview Confirmation Dialog */}
+          <ExitInterviewDialog
+            isOpen={showEndConfirmDialog}
+            onClose={() => setShowEndConfirmDialog(false)}
+            onConfirm={confirmEndInterview}
+            isInterviewStarted={hasStarted}
+            creditsUsed={selectedDuration ? getInterviewCost(selectedDuration) : 0}
+            questionsAnswered={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+          />
+
+          {/* Start Interview Credit Confirmation Dialog */}
+          <StartInterviewDialog
+            isOpen={showStartConfirmDialog}
+            onClose={() => setShowStartConfirmDialog(false)}
+            onConfirm={confirmStartInterview}
+            creditCost={selectedDuration ? getInterviewCost(selectedDuration) : 0}
+            currentBalance={balance ?? 0}
+            duration={selectedDuration ?? 15}
+            difficulty={selectedDifficulty ?? "intermediate"}
+            interviewType={interviewType}
+          />
         </div>
 
         <div className="w-full lg:w-96 flex flex-col bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl overflow-hidden lg:flex-shrink-0 h-full min-h-0">

@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import InterviewNavbar from "./interview-navbar"
 import InterviewWrapper from "./interview-wrapper"
+import { InterviewProvider, useInterviewContext } from "@/contexts/interview-context"
 import "@/app/interview/interview-mobile-landscape.css"
 
 interface InterviewRoomProps {
@@ -10,8 +12,9 @@ interface InterviewRoomProps {
   courseTitle?: string
 }
 
-export function InterviewRoom({ interviewType, courseTitle }: InterviewRoomProps) {
-  const [isRecording, setIsRecording] = useState(false)
+function InterviewRoomContent({ interviewType, courseTitle }: InterviewRoomProps) {
+  const router = useRouter()
+  const { state } = useInterviewContext()
 
   const getInterviewTitle = () => {
     if (courseTitle) {
@@ -26,9 +29,21 @@ export function InterviewRoom({ interviewType, courseTitle }: InterviewRoomProps
     return titles[interviewType] || "Interview"
   }
 
+  const handleExitConfirm = () => {
+    // If interview has started, we should complete it first
+    // The interviewer components handle this via their own exit logic
+    router.push("/dashboard")
+  }
+
   return (
     <div className="min-h-screen bg-white interview-mobile-landscape">
-      <InterviewNavbar />
+      <InterviewNavbar
+        isInterviewStarted={state.isStarted}
+        creditsUsed={state.creditsUsed}
+        questionsAnswered={state.questionsAnswered}
+        totalQuestions={state.totalQuestions}
+        onExitConfirm={handleExitConfirm}
+      />
 
       <div className="pt-16 md:pt-20 pb-4 md:pb-8 px-3 md:px-4 sm:px-6 lg:px-8 h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] flex flex-col interview-mobile-optimized">
         <div className="flex-1 flex flex-col">
@@ -41,6 +56,14 @@ export function InterviewRoom({ interviewType, courseTitle }: InterviewRoomProps
         </div>
       </div>
     </div>
+  )
+}
+
+export function InterviewRoom({ interviewType, courseTitle }: InterviewRoomProps) {
+  return (
+    <InterviewProvider>
+      <InterviewRoomContent interviewType={interviewType} courseTitle={courseTitle} />
+    </InterviewProvider>
   )
 }
 
